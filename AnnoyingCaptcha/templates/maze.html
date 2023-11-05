@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Solve My Riddles</title>
+    <style>
+        /* CSS styles for the progress bar */
+        #progressBar {
+            width: 0%;
+            height: 20px;
+            background-color: #007BFF;
+            transition: width 0.2s; /* Add smooth transition for width changes */
+        }
+    </style>
+</head>
+<body>
+    <h1>Solve My Riddles</h1>
+    <canvas id="mazeCanvas" width="600" height="600"></canvas>
+    <div id="progressBar"></div>
+
+    <script>
+        var mazeData = {{ maze_json|safe }};
+        var longest_path_length = {{ longest_path_length|safe }};
+        var canvas = document.getElementById('mazeCanvas');
+        var ctx = canvas.getContext('2d');
+        var prevCellX = -1;
+        var prevCellY = -1;
+
+        // Customize cell colors and dimensions as needed
+        var wallColor = '#000';
+        var pathColor = '#FFF';
+        var startColor = '#00F';
+        var endColor = '#F00';
+
+        var cellWidth = canvas.width / mazeData[0].length;
+        var cellHeight = canvas.height / mazeData.length;
+
+        for (var y = 0; y < mazeData.length; y++) {
+            for (var x = 0; x < mazeData[0].length; x++) {
+                ctx.fillStyle = mazeData[y][x] === '#' ? wallColor : pathColor;
+                ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+            }
+        }
+
+    </script>
+
+<script>
+     var userPath = [];
+    var isDrawing = false;
+    var solutionStatus = document.createElement('p');
+    document.body.appendChild(solutionStatus);
+
+     var isSolving = false;  // Define the isSolving variable
+
+    canvas.addEventListener('mousedown', function(event) {
+        if (!isSolving) {
+            isSolving = true; // Start solving when the mouse button is pressed
+            userPath = []; // Clear the user's path
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+            drawMaze(); // Redraw the maze
+        }
+    });
+
+    canvas.addEventListener('mousemove', function(event) {
+         if (isSolving) {
+            var x = Math.floor(event.offsetX / cellWidth);
+            var y = Math.floor(event.offsetY / cellHeight);
+            if (mazeData[y][x] === '#'){
+                submitSolution(userPath);
+            }
+
+            if (x !== prevCellX || y !== prevCellY) {
+                // Cursor has entered a new cell, update userPath
+                userPath.push({ x: x, y: y });
+                prevCellX = x;
+                prevCellY = y;
+
+                ctx.fillStyle = '#0F0';  // Color for the user's path
+                ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+                updateProgressBar(userPath);  // Update the progress bar on mouse move
+            }
+        }
+    });
+
+    canvas.addEventListener('mouseup', function(event) {
+        if (isSolving) {
+            isSolving = false; // Stop solving when the mouse button is released
+
+            var x = Math.floor(event.offsetX / cellWidth);
+            var y = Math.floor(event.offsetY / cellHeight);
+            userPath.push({ x: x, y: y });
+
+            // You can now submit the user's solution (userPath) for checking
+            submitSolution(userPath);
+        }
+    });
+
+    function updateProgressBar(solution) {
+            // Update the progress bar
+            var progress = (solution.length / longest_path_length) * 100;
+            progressBar.style.width = progress + '%';
+        }
+
+    function submitSolution(solution) {
+        console.log(solution.length);
+        console.log(longest_path_length);
+        if (solution.length < longest_path_length){
+            resetMaze();
+        }
+        else{
+            window.open("https://www.youtube.com/watch?v=dQw4w9WgXcQ&ab_channel=RickAstley", "_blank");
+        }
+    }
+
+    function drawMaze() {
+        // This function redraws the maze on the canvas
+        for (var y = 0; y < mazeData.length; y++) {
+            for (var x = 0; x < mazeData[0].length; x++) {
+                ctx.fillStyle = mazeData[y][x] === '#' ? wallColor : pathColor;
+                ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+            }
+        }
+    }
+
+    function resetMaze() {
+    fetch('/reset')
+        .then(response => response.json())
+        .then(data => {
+            // Update the longest path length
+            var longestPathLengthElement = document.getElementById('longestPathLength');
+            if (longestPathLengthElement) {
+                longestPathLengthElement.textContent = data.longest_path_length;
+            }
+
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            progressBar.style.width = '0%';
+
+            // Redraw the maze based on the fetched data
+            mazeData = JSON.parse(data.maze_json); // Parse the JSON data
+            for (var y = 0; y < mazeData.length; y++) {
+                for (var x = 0; x < mazeData[0].length; x++) {
+                    ctx.fillStyle = mazeData[y][x] === '#' ? wallColor : pathColor;
+                    ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+                }
+            }
+        })
+        .catch(error => console.error('Error fetching maze data:', error));
+}
+
+</script>
+</body>
+</html>
